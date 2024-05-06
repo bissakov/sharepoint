@@ -104,6 +104,9 @@ class Tree:
             if isinstance(node, FolderNode):
                 stack.extend(reversed(node.children))
 
+    def __len__(self) -> int:
+        return sum(1 for _ in self)
+
     def __str__(self) -> str:
         return f"Tree(root={self.root} depth={self.depth})"
 
