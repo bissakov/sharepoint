@@ -54,6 +54,7 @@ class SharePoint:
         assert self._ctx is not None
         return self._ctx
 
+    @handle_sharepoint_error
     def _connect(self) -> None:
         credentials = ClientCredential(self.client_id, self.client_secret)
         self._ctx = ClientContext(
@@ -68,6 +69,7 @@ class SharePoint:
             "Connected to SharePoint site: '%s'", self._ctx.web.properties["Title"]
         )
 
+    @handle_sharepoint_error
     def _folder(
         self, folder_url: str, expand_options: Optional[List[str]] = None
     ) -> Folder:
@@ -84,6 +86,7 @@ class SharePoint:
 
         return folder
 
+    @handle_sharepoint_error
     def _file(self, file_url: str) -> File:
         logging.info("Getting file: '%s'", file_url)
 
@@ -95,6 +98,7 @@ class SharePoint:
 
         return file
 
+    @handle_sharepoint_error
     def _list(self, list_name: str) -> SPList:
         logging.info("Getting list: '%s'", list_name)
 
@@ -104,6 +108,7 @@ class SharePoint:
 
         return list_obj
 
+    @handle_sharepoint_error
     def _get_folder_contents(
         self,
         folder: Union[str, Folder],
@@ -213,6 +218,7 @@ class SharePoint:
 
         return files
 
+    @handle_sharepoint_error
     def read_file(self, file_url: str) -> bytes:
         logging.info("Reading file: '%s'", file_url)
 
@@ -230,8 +236,17 @@ class SharePoint:
 
         return file_content
 
-    # def get_file_metadata(self, file_url: str) -> dict:
+    def get_file_properties(self, file_url: str) -> Dict[str, Any]:
+        logging.info("Getting file properties: '%s'", file_url)
 
+        file = self._file(file_url)
+        file_properties = file.properties
+
+        logging.info("File properties: %s", file_properties)
+
+        return file_properties
+
+    @handle_sharepoint_error
     def download_file(self, file_url: str, download_path: str) -> None:
         logging.info("Downloading file: '%s'", file_url)
 
@@ -277,6 +292,7 @@ class SharePoint:
         shutil.make_archive(base_name, "zip", temp_dir)
         shutil.rmtree(temp_dir)
 
+    @handle_sharepoint_error
     def _create_folder(self, parent_folder_url: str, folder_name: str) -> Folder:
         if folder_name.startswith("/") or folder_name.startswith("\\"):
             raise ValueError(
@@ -299,7 +315,8 @@ class SharePoint:
 
         return path
 
-    def _chunk_uploaded(self, uploaded_bytes: int, total_bytes: int) -> None:
+    @staticmethod
+    def _chunk_uploaded(uploaded_bytes: int, total_bytes: int) -> None:
         one_mb = 1024 * 1024
         if total_bytes >= one_mb:
             total_bytes_str = f"{total_bytes / one_mb:.2f} MB"
@@ -357,6 +374,7 @@ class SharePoint:
 
         return path
 
+    @handle_sharepoint_error
     def delete_file(self, file_url: str) -> None:
         logging.info("Deleting file: '%s'", file_url)
 
@@ -365,6 +383,7 @@ class SharePoint:
 
         logging.info("File deleted")
 
+    @handle_sharepoint_error
     def delete_folder(self, folder_url: str, recursive: bool = False) -> None:
         logging.info("Deleting folder: '%s'", folder_url)
 
@@ -373,6 +392,7 @@ class SharePoint:
 
         logging.info("Folder deleted")
 
+    @handle_sharepoint_error
     def upload_folder(self, remote_folder_url: str, local_folder: str) -> Any:
         logging.info("Uploading folder: '%s' to '%s'", local_folder, remote_folder_url)
 
@@ -418,6 +438,7 @@ class SharePoint:
 
         return path
 
+    @handle_sharepoint_error
     def create_list(self, list_name: str, description: str, template_name: str) -> str:
         logging.info("Creating list: '%s'", list_name)
 
@@ -432,7 +453,8 @@ class SharePoint:
 
         return list_title
 
-    def update_list_name(self, original_list_name: str, new_list_name: str) -> Any:
+    @handle_sharepoint_error
+    def update_list_name(self, original_list_name: str, new_list_name: str) -> str:
         logging.info("Updating list: '%s'", original_list_name)
 
         list_object = self._list(original_list_name)
