@@ -87,11 +87,22 @@ class FileNode(Node):
 class Tree:
     def __init__(self, root: FolderNode) -> None:
         self.root = root
-        self.depth = 0
+        self._depth = 0
 
-    def set_current_node(self, folder_node: FolderNode) -> None:
-        self.current_folder_node = folder_node
-        self.depth += 1
+    @property
+    def depth(self) -> int:
+        def dfs(node: ChildNode, depth: int = 0) -> int:
+            if isinstance(node, FolderNode):
+                max_depth = depth
+                for child in node.children:
+                    max_depth = max(max_depth, dfs(child, depth + 1))
+                return max_depth
+            else:
+                return depth
+
+        if self._depth == 0:
+            self._depth = dfs(self.root)
+        return self._depth
 
     def to_dict(self) -> FolderNodeDict:
         return self.root.to_dict()
