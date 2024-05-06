@@ -27,6 +27,9 @@ from src.error import (
 from src.tree import Tree, FileNode, FolderNode, FolderNodeDict
 
 
+logger = logging.getLogger(__name__)
+
+
 class ListTemplateType(_ListTemplateType):
     def __init__(self) -> None:
         super().__init__()
@@ -67,7 +70,7 @@ class SharePoint:
         self._ctx.load(self._ctx.web)
         self._ctx.execute_query()
         self.is_connected = True
-        logging.info(
+        logger.info(
             "Connected to SharePoint site: '%s'", self._ctx.web.properties["Title"]
         )
 
@@ -75,7 +78,7 @@ class SharePoint:
     def _folder(
         self, folder_url: str, expand_options: Optional[List[str]] = None
     ) -> Folder:
-        logging.info("Getting folder: '%s'", folder_url)
+        logger.info("Getting folder: '%s'", folder_url)
 
         folder = self.ctx.web.get_folder_by_server_relative_url(folder_url)
         self.ctx.load(folder)
@@ -84,25 +87,25 @@ class SharePoint:
         if expand_options:
             folder.expand(expand_options).get().execute_query()
 
-        logging.info("Folder path: '%s'", folder.serverRelativeUrl)
+        logger.info("Folder path: '%s'", folder.serverRelativeUrl)
 
         return folder
 
     @handle_sharepoint_error
     def _file(self, file_url: str) -> File:
-        logging.info("Getting file: '%s'", file_url)
+        logger.info("Getting file: '%s'", file_url)
 
         file = self.ctx.web.get_file_by_server_relative_url(file_url)
         self.ctx.load(file)
         self.ctx.execute_query()
 
-        logging.info("File path: '%s'", file.serverRelativeUrl)
+        logger.info("File path: '%s'", file.serverRelativeUrl)
 
         return file
 
     @handle_sharepoint_error
     def _list(self, list_name: str) -> SPList:
-        logging.info("Getting list: '%s'", list_name)
+        logger.info("Getting list: '%s'", list_name)
 
         list_obj = self.ctx.web.lists.get_by_title(list_name)
         self.ctx.load(list_obj)
@@ -172,7 +175,7 @@ class SharePoint:
     ) -> FolderNodeDict:
         tree = self._get_folder_contents(folder_url, recursive=recursive)
         folder_contents = tree.to_dict()
-        logging.info("Folder contents: %s", folder_contents)
+        logger.info("Folder contents: %s", folder_contents)
 
         return folder_contents
 
@@ -203,7 +206,7 @@ class SharePoint:
             root_folder.folders, include_properties=include_properties
         )
 
-        logging.info("Subfolders: %s", subfolders)
+        logger.info("Subfolders: %s", subfolders)
 
         return subfolders
 
@@ -216,47 +219,47 @@ class SharePoint:
             root_folder.files, include_properties=include_properties
         )
 
-        logging.info("Files: %s", files)
+        logger.info("Files: %s", files)
 
         return files
 
     @handle_sharepoint_error
     def read_file(self, file_url: str) -> bytes:
-        logging.info("Reading file: '%s'", file_url)
+        logger.info("Reading file: '%s'", file_url)
 
         file = self._file(file_url)
         response = file.get_content().execute_query()
         file_content = response.value
 
-        logging.info("File type: %s", type(file_content))
-        logging.info("File size: %s bytes", len(file_content))
+        logger.info("File type: %s", type(file_content))
+        logger.info("File size: %s bytes", len(file_content))
 
         if len(file_content) > 10:
-            logging.info("File content: %s...", file_content[:10])
+            logger.info("File content: %s...", file_content[:10])
         else:
-            logging.info("File content: %s", file_content)
+            logger.info("File content: %s", file_content)
 
         return file_content
 
     def get_file_properties(self, file_url: str) -> Dict[str, Any]:
-        logging.info("Getting file properties: '%s'", file_url)
+        logger.info("Getting file properties: '%s'", file_url)
 
         file = self._file(file_url)
         file_properties = file.properties
 
-        logging.info("File properties: %s", file_properties)
+        logger.info("File properties: %s", file_properties)
 
         return file_properties
 
     @handle_sharepoint_error
     def download_file(self, file_url: str, download_path: str) -> None:
-        logging.info("Downloading file: '%s'", file_url)
+        logger.info("Downloading file: '%s'", file_url)
 
         file = self._file(file_url)
         with open(download_path, "wb") as f:
             file.download(f).execute_query()
 
-        logging.info("File downloaded to: '%s'", download_path)
+        logger.info("File downloaded to: '%s'", download_path)
 
     def download_folder(
         self,
@@ -269,15 +272,15 @@ class SharePoint:
                 "Only .zip files are supported for downloading folders."
             )
 
-        logging.info("Downloading folder: '%s'", folder_url)
+        logger.info("Downloading folder: '%s'", folder_url)
 
         base_name = output_zip_file.replace(".zip", "")
         os.makedirs(base_name, exist_ok=True)
-        logging.info("Downloading to folder: '%s'", base_name)
+        logger.info("Downloading to folder: '%s'", base_name)
 
         temp_dir = pathlib.Path(os.path.basename(base_name), "temp").as_posix()
         os.makedirs(temp_dir, exist_ok=True)
-        logging.info("Temporary folder created: '%s'", temp_dir)
+        logger.info("Temporary folder created: '%s'", temp_dir)
 
         tree = self._get_folder_contents(folder_url, recursive=recursive)
 
@@ -302,7 +305,7 @@ class SharePoint:
                 "Use only the folder name without the path."
             )
 
-        logging.info("Creating folder: '%s' under '%s'", folder_name, parent_folder_url)
+        logger.info("Creating folder: '%s' under '%s'", folder_name, parent_folder_url)
 
         parent_folder = self._folder(parent_folder_url)
         new_folder = parent_folder.folders.add(folder_name)
@@ -313,7 +316,7 @@ class SharePoint:
     def create_folder(self, parent_folder_url: str, folder_name: str) -> str:
         new_folder = self._create_folder(parent_folder_url, folder_name)
         path = new_folder.properties["ServerRelativeUrl"]
-        logging.info("Folder created: '%s'", path)
+        logger.info("Folder created: '%s'", path)
 
         return path
 
@@ -326,7 +329,7 @@ class SharePoint:
         else:
             total_bytes_str = f"{total_bytes / 1024:.2f} KB"
             uploaded_bytes_str = f"{uploaded_bytes / 1024:.2f} KB"
-        logging.info(
+        logger.info(
             "Uploaded: %s/%s (%.2f%%)",
             uploaded_bytes_str,
             total_bytes_str,
@@ -354,7 +357,7 @@ class SharePoint:
                 "Chunk size should be less than 262,144,000 bytes (250 MB)."
             )
 
-        logging.info("Uploading file: '%s' to '%s'", local_file_path, remote_folder_url)
+        logger.info("Uploading file: '%s' to '%s'", local_file_path, remote_folder_url)
 
         folder = self._folder(remote_folder_url)
 
@@ -372,31 +375,31 @@ class SharePoint:
             self.ctx.execute_query()
 
         path = file.properties["ServerRelativeUrl"]
-        logging.info("File uploaded: '%s'", path)
+        logger.info("File uploaded: '%s'", path)
 
         return path
 
     @handle_sharepoint_error
     def delete_file(self, file_url: str) -> None:
-        logging.info("Deleting file: '%s'", file_url)
+        logger.info("Deleting file: '%s'", file_url)
 
         file = self._file(file_url)
         file.delete_object().execute_query()
 
-        logging.info("File deleted")
+        logger.info("File deleted")
 
     @handle_sharepoint_error
     def delete_folder(self, folder_url: str, recursive: bool = False) -> None:
-        logging.info("Deleting folder: '%s'", folder_url)
+        logger.info("Deleting folder: '%s'", folder_url)
 
         folder = self._folder(folder_url)
         folder.delete_object().execute_query()
 
-        logging.info("Folder deleted")
+        logger.info("Folder deleted")
 
     @handle_sharepoint_error
     def upload_folder(self, remote_folder_url: str, local_folder: str) -> Any:
-        logging.info("Uploading folder: '%s' to '%s'", local_folder, remote_folder_url)
+        logger.info("Uploading folder: '%s' to '%s'", local_folder, remote_folder_url)
 
         print()
 
@@ -415,15 +418,15 @@ class SharePoint:
             #
             # parent_folder_url = os.path.relpath(remote_folder_url, dirpath)
             #
-            # logging.info("parent_folder_url: %s", parent_folder_url)
-            # logging.info("folder_name: %s", folder_name)
+            # logger.info("parent_folder_url: %s", parent_folder_url)
+            # logger.info("folder_name: %s", folder_name)
             # self.create_folder(root, folder_name)
 
             for filename in filenames:
                 print()
             print("\n")
 
-        # logging.info("Folder uploaded")
+        # logger.info("Folder uploaded")
 
         # return remote_folder_url
 
@@ -442,7 +445,7 @@ class SharePoint:
 
     @handle_sharepoint_error
     def create_list(self, list_name: str, description: str, template_name: str) -> str:
-        logging.info("Creating list: '%s'", list_name)
+        logger.info("Creating list: '%s'", list_name)
 
         template_type = ListTemplateType.get(template_name)
         if template_type is None:
@@ -451,19 +454,19 @@ class SharePoint:
         create_info = ListCreationInformation(list_name, None, ListTemplateType.Tasks)
         list_object = self.ctx.web.lists.add(create_info).execute_query()
         list_title = list_object.properties["Title"]
-        logging.info("List created: '%s'", list_title)
+        logger.info("List created: '%s'", list_title)
 
         return list_title
 
     @handle_sharepoint_error
     def update_list_name(self, original_list_name: str, new_list_name: str) -> str:
-        logging.info("Updating list: '%s'", original_list_name)
+        logger.info("Updating list: '%s'", original_list_name)
 
         list_object = self._list(original_list_name)
 
         list_object.set_property("Title", new_list_name)
         list_object.update().execute_query()
 
-        logging.info("List updated: '%s'", new_list_name)
+        logger.info("List updated: '%s'", new_list_name)
 
         return new_list_name
