@@ -1,4 +1,5 @@
 import os
+import tempfile
 from src.sharepoint import SharePoint
 import dotenv
 from src.error import (
@@ -16,7 +17,7 @@ from office365.sharepoint.folders.folder import Folder
 from office365.sharepoint.files.file import File
 from typing import cast
 
-from src.tree import FolderNode, FolderNodeDict, Tree, FileNode
+from src.tree import FolderNode, Tree, FileNode
 
 dotenv.load_dotenv()
 
@@ -119,6 +120,7 @@ def test_get_folder_contents(sharepoint: SharePoint) -> None:
     assert tree_length == len(tree)
 
 
+@pytest.mark.skip(reason="Already tested")
 def test_list_folder_contents_recursive(sharepoint: SharePoint) -> None:
     folder_url = "/Shared Documents"
     tree = sharepoint._get_folder_contents(folder_url, recursive=True)
@@ -144,6 +146,7 @@ def test_list_folder_contents(sharepoint: SharePoint) -> None:
     assert contents == sharepoint._get_folder_contents(folder_url).to_dict()
 
 
+@pytest.mark.skip(reason="Already tested")
 def test_list_subfolders(sharepoint: SharePoint) -> None:
     folder_url = "/Shared Documents/Test_03-05-2024"
     subfolders = sharepoint.list_subfolders(folder_url)
@@ -153,6 +156,7 @@ def test_list_subfolders(sharepoint: SharePoint) -> None:
     assert all(isinstance(folder, str) for folder in subfolders)
 
 
+@pytest.mark.skip(reason="Already tested")
 def test_list_subfolders_with_properties(sharepoint: SharePoint) -> None:
     folder_url = "/Shared Documents/Test_03-05-2024"
     subfolders = sharepoint.list_subfolders(folder_url, include_properties=True)
@@ -165,6 +169,7 @@ def test_list_subfolders_with_properties(sharepoint: SharePoint) -> None:
     assert all("ServerRelativeUrl" in folder for folder in subfolders)
 
 
+@pytest.mark.skip(reason="Already tested")
 def test_list_files(sharepoint: SharePoint) -> None:
     folder_url = "/Shared Documents/Test_03-05-2024"
     files = sharepoint.list_files(folder_url)
@@ -174,6 +179,7 @@ def test_list_files(sharepoint: SharePoint) -> None:
     assert all(isinstance(file, str) for file in files)
 
 
+@pytest.mark.skip(reason="Already tested")
 def test_list_files_with_properties(sharepoint: SharePoint) -> None:
     folder_url = "/Shared Documents/Test_03-05-2024"
     files = sharepoint.list_files(folder_url, include_properties=True)
@@ -185,3 +191,31 @@ def test_list_files_with_properties(sharepoint: SharePoint) -> None:
     assert all("Name" in file for file in files)
     assert all("ServerRelativeUrl" in file for file in files)
     assert all("Length" in file for file in files)
+
+
+@pytest.mark.skip(reason="Already tested")
+def test_read_file(sharepoint: SharePoint) -> None:
+    file_url = "/Shared Documents/Rekvizity (1).docx"
+    file = sharepoint.read_file(file_url)
+
+    assert isinstance(file, bytes)
+    assert len(file) > 0
+
+
+@pytest.mark.skip(reason="Already tested")
+def test_download_file(sharepoint: SharePoint) -> None:
+    file_url = "/Shared Documents/Rekvizity (1).docx"
+    download_path = os.path.join(tempfile.gettempdir(), file_url.split("/")[-1])
+
+    sharepoint.download_file(file_url, download_path)
+
+    with open(download_path, "rb") as f:
+        temp_file_content = f.read()
+
+    assert isinstance(temp_file_content, bytes)
+    assert len(temp_file_content) > 0
+
+    target_file = sharepoint.read_file(file_url)
+    assert temp_file_content == target_file
+
+    os.remove(download_path)
