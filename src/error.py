@@ -111,7 +111,7 @@ def map_exception_to_custom_error(
 
 def handle_sharepoint_error(func: T) -> T:
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> Any:
         try:
             return func(*args, **kwargs)
         except ClientRequestException as exc:

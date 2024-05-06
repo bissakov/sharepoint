@@ -6,7 +6,7 @@ import time
 import os
 
 
-def main():
+def main() -> None:
     dotenv.load_dotenv()
 
     project_dir = pathlib.Path(os.path.abspath(__file__)).parents[1].as_posix()

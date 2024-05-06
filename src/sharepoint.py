@@ -28,7 +28,7 @@ from src.tree import Tree, FileNode, FolderNode, FolderNodeDict
 
 
 class ListTemplateType(_ListTemplateType):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @classmethod
