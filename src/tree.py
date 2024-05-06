@@ -1,4 +1,4 @@
-from typing import List, Optional, TypedDict, Union
+from typing import List, Optional, TypedDict, Union, Generator
 
 from office365.sharepoint.files.file import File
 from office365.sharepoint.folders.folder import Folder
@@ -27,7 +27,7 @@ class Node:
         obj: Union[File, Folder],
         type: str,
         parent: Optional["FolderNode"],
-    ):
+    ) -> None:
         self.obj = obj
         self.name = obj.properties["Name"]
         self.path = obj.properties["ServerRelativeUrl"]
@@ -93,10 +93,10 @@ class Tree:
         self.current_folder_node = folder_node
         self.depth += 1
 
-    def to_dict(self):
+    def to_dict(self) -> FolderNodeDict:
         return self.root.to_dict()
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[ChildNode, None, None]:
         stack: List[ChildNode] = [self.root]
         while stack:
             node = stack.pop()
