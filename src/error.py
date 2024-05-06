@@ -51,7 +51,12 @@ class SPFileNotFoundError(SPException):
         super().__init__(error_details, "File not found")
 
 
-class FileAlreadyExistsError(SPException):
+class SPListNotFoundError(SPException):
+    def __init__(self, error_details: ErrorDetails) -> None:
+        super().__init__(error_details, "List not found")
+
+
+class SPFileAlreadyExistsError(SPException):
     def __init__(self, error_details: ErrorDetails) -> None:
         super().__init__(
             error_details,
@@ -143,7 +148,9 @@ def handle_client_request_error(exc: ClientRequestException) -> Exception:
     elif exc_name == "Microsoft.SharePoint.SPException" and code == "-2130575338":
         return SPFileNotFoundError(error_details)
     elif exc_name == "Microsoft.SharePoint.SPException" and code == "-2130575257":
-        return FileAlreadyExistsError(error_details)
+        return SPFileAlreadyExistsError(error_details)
+    elif exc_name == "System.ArgumentException" and code == "-1":
+        return SPListNotFoundError(error_details)
     else:
         return exc
 
