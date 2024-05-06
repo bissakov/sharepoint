@@ -7,19 +7,22 @@ from src.error import (
     InvalidClientSecretError,
     InvalidSiteUrlError,
     SPFileNotFoundError,
+    SPListNotFoundError,
 )
 from office365.sharepoint.lists.list import List as SPList
 import pytest
 import logging
 from office365.sharepoint.folders.folder import Folder
 from office365.sharepoint.files.file import File
+from typing import cast
 
+from src.tree import FolderNode, FolderNodeDict, Tree, FileNode
 
 dotenv.load_dotenv()
 
-client_id = os.getenv("CLIENT_ID")
-client_secret = os.getenv("CLIENT_SECRET")
-base_url = os.getenv("BASE_URL")
+client_id = cast(str, os.getenv("CLIENT_ID"))
+client_secret = cast(str, os.getenv("CLIENT_SECRET"))
+base_url = cast(str, os.getenv("BASE_URL"))
 
 disable_loggers = ["src.error", "src.sharepoint"]
 for logger_name in disable_loggers:
@@ -27,114 +30,99 @@ for logger_name in disable_loggers:
     logger.disabled = True
 
 
-@pytest.mark.skip(reason="Already tested")
-def test_auth_correct() -> None:
-    assert client_id is not None, "CLIENT_ID is not set"
-    assert client_secret is not None, "CLIENT_SECRET is not set"
-    assert base_url is not None, "BASE_URL is not set"
-
+@pytest.fixture(scope="session", autouse=True, name="sharepoint")
+def _sharepoint() -> SharePoint:
     sharepoint = SharePoint(base_url, client_id, client_secret)
+    return sharepoint
+
+
+@pytest.mark.skip(reason="Already tested")
+def test_auth_correct(sharepoint: SharePoint) -> None:
     sharepoint._connect()
     assert sharepoint.is_connected is True
 
 
 @pytest.mark.skip(reason="Already tested")
 def test_auth_invalid_client_id() -> None:
-    assert client_secret is not None, "CLIENT_SECRET is not set"
-    assert base_url is not None, "BASE_URL is not set"
-
-    sharepoint = SharePoint(base_url, "askldjaskl", client_secret)
-
     with pytest.raises(InvalidClientIDError):
-        sharepoint._connect()
+        SharePoint(base_url, "askldjaskl", client_secret)._connect()
 
 
 @pytest.mark.skip(reason="Already tested")
 def test_auth_invalid_client_secret() -> None:
-    assert client_id is not None, "CLIENT_ID is not set"
-    assert base_url is not None, "BASE_URL is not set"
-
-    sharepoint = SharePoint(base_url, client_id, "askldjaskl")
-
     with pytest.raises(InvalidClientSecretError):
-        sharepoint._connect()
+        SharePoint(base_url, client_id, "askldjaskl")._connect()
 
 
 @pytest.mark.skip(reason="Already tested")
 def test_invalid_both_id_secret() -> None:
-    assert base_url is not None, "BASE_URL is not set"
-
-    sharepoint = SharePoint(base_url, "askldjaskl", "askldjaskl")
-
     with pytest.raises(InvalidClientIDError):
-        sharepoint._connect()
+        SharePoint(base_url, "askldjaskl", "askldjaskl")._connect()
 
 
 @pytest.mark.skip(reason="Already tested")
 def test_auth_invalid_site_url() -> None:
-    sharepoint = SharePoint("https://askldjaskl.sharepoint.com", "something", "secret")
-
     with pytest.raises(InvalidSiteUrlError):
-        sharepoint._connect()
+        SharePoint("https://akldjaskl.sharepoint.com", "something", "secret")._connect()
 
 
 @pytest.mark.skip(reason="Already tested")
-def test_folder() -> None:
-    assert client_id is not None, "CLIENT_ID is not set"
-    assert client_secret is not None, "CLIENT_SECRET is not set"
-    assert base_url is not None, "BASE_URL is not set"
-
-    sharepoint = SharePoint(base_url, client_id, client_secret)
-
+def test_folder(sharepoint: SharePoint) -> None:
     folder = sharepoint._folder("/Shared Documents")
     assert isinstance(folder, Folder) and folder.exists is True
 
 
 @pytest.mark.skip(reason="Already tested")
-def test_unknown_folder() -> None:
-    assert client_id is not None, "CLIENT_ID is not set"
-    assert client_secret is not None, "CLIENT_SECRET is not set"
-    assert base_url is not None, "BASE_URL is not set"
-
-    sharepoint = SharePoint(base_url, client_id, client_secret)
-
+def test_unknown_folder(sharepoint: SharePoint) -> None:
     with pytest.raises(SPFolderNotFoundError):
-        _ = sharepoint._folder("/Shared Documents/askldjaskl")
+        sharepoint._folder("/Shared Documents/askldjaskl")
 
 
 @pytest.mark.skip(reason="Already tested")
-def test_file() -> None:
-    assert client_id is not None, "CLIENT_ID is not set"
-    assert client_secret is not None, "CLIENT_SECRET is not set"
-    assert base_url is not None, "BASE_URL is not set"
-
-    sharepoint = SharePoint(base_url, client_id, client_secret)
-
+def test_file(sharepoint: SharePoint) -> None:
     file = sharepoint._file("/Shared Documents/Rekvizity (1).docx")
     assert isinstance(file, File) and file.exists is True
 
 
 @pytest.mark.skip(reason="Already tested")
-def test_unknown_file() -> None:
-    assert client_id is not None, "CLIENT_ID is not set"
-    assert client_secret is not None, "CLIENT_SECRET is not set"
-    assert base_url is not None, "BASE_URL is not set"
-
-    sharepoint = SharePoint(base_url, client_id, client_secret)
-
+def test_unknown_file(sharepoint: SharePoint) -> None:
     with pytest.raises(SPFileNotFoundError):
-        _ = sharepoint._file("/Shared Documents/asdkljaskl.docx")
+        sharepoint._file("/Shared Documents/asdkljaskl.docx")
 
 
-def test_list() -> None:
-    assert client_id is not None, "CLIENT_ID is not set"
-    assert client_secret is not None, "CLIENT_SECRET is not set"
-    assert base_url is not None, "BASE_URL is not set"
-
-    sharepoint = SharePoint(base_url, client_id, client_secret)
-
+@pytest.mark.skip(reason="Already tested")
+def test_list(sharepoint: SharePoint) -> None:
     list_object = sharepoint._list("TestList")
     assert (
         isinstance(list_object, SPList)
         and list_object.properties["Title"] == "TestList"
     )
+
+
+@pytest.mark.skip(reason="Already tested")
+def test_unknown_list(sharepoint: SharePoint) -> None:
+    with pytest.raises(SPListNotFoundError):
+        sharepoint._list("askldjaskl")
+
+
+@pytest.mark.skip(reason="Already tested")
+def test_get_folder_contents(sharepoint: SharePoint) -> None:
+    tree = sharepoint._get_folder_contents("/Shared Documents/Test_03-05-2024")
+    assert isinstance(tree, Tree)
+
+    tree_length = 0
+    for node in tree:
+        assert isinstance(node, (FileNode, FolderNode))
+        assert node.name is not None
+        tree_length += 1
+
+    assert tree_length == len(tree)
+
+
+@pytest.mark.skip(reason="Already tested")
+def test_list_folder_contents(sharepoint: SharePoint) -> None:
+    folder_url = "/Shared Documents/Test_03-05-2024"
+    contents = sharepoint.list_folder_contents(folder_url)
+
+    assert isinstance(contents, dict)
+    assert contents == sharepoint._get_folder_contents(folder_url).to_dict()
