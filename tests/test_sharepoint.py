@@ -119,6 +119,22 @@ def test_get_folder_contents(sharepoint: SharePoint) -> None:
     assert tree_length == len(tree)
 
 
+def test_list_folder_contents_recursive(sharepoint: SharePoint) -> None:
+    folder_url = "/Shared Documents"
+    tree = sharepoint._get_folder_contents(folder_url, recursive=True)
+
+    assert isinstance(tree, Tree)
+
+    tree_length = 0
+    for node in tree:
+        assert isinstance(node, (FileNode, FolderNode))
+        assert node.name is not None
+        tree_length += 1
+    assert tree_length == len(tree)
+
+    assert tree.depth > 1
+
+
 @pytest.mark.skip(reason="Already tested")
 def test_list_folder_contents(sharepoint: SharePoint) -> None:
     folder_url = "/Shared Documents/Test_03-05-2024"
@@ -126,3 +142,46 @@ def test_list_folder_contents(sharepoint: SharePoint) -> None:
 
     assert isinstance(contents, dict)
     assert contents == sharepoint._get_folder_contents(folder_url).to_dict()
+
+
+def test_list_subfolders(sharepoint: SharePoint) -> None:
+    folder_url = "/Shared Documents/Test_03-05-2024"
+    subfolders = sharepoint.list_subfolders(folder_url)
+
+    assert isinstance(subfolders, list)
+
+    assert all(isinstance(folder, str) for folder in subfolders)
+
+
+def test_list_subfolders_with_properties(sharepoint: SharePoint) -> None:
+    folder_url = "/Shared Documents/Test_03-05-2024"
+    subfolders = sharepoint.list_subfolders(folder_url, include_properties=True)
+
+    assert isinstance(subfolders, list)
+
+    assert all(isinstance(folder, dict) for folder in subfolders)
+
+    assert all("Name" in folder for folder in subfolders)
+    assert all("ServerRelativeUrl" in folder for folder in subfolders)
+
+
+def test_list_files(sharepoint: SharePoint) -> None:
+    folder_url = "/Shared Documents/Test_03-05-2024"
+    files = sharepoint.list_files(folder_url)
+
+    assert isinstance(files, list)
+
+    assert all(isinstance(file, str) for file in files)
+
+
+def test_list_files_with_properties(sharepoint: SharePoint) -> None:
+    folder_url = "/Shared Documents/Test_03-05-2024"
+    files = sharepoint.list_files(folder_url, include_properties=True)
+
+    assert isinstance(files, list)
+
+    assert all(isinstance(file, dict) for file in files)
+
+    assert all("Name" in file for file in files)
+    assert all("ServerRelativeUrl" in file for file in files)
+    assert all("Length" in file for file in files)
