@@ -1,4 +1,7 @@
+import json
 import logging
+import sys
+
 from functools import wraps
 from typing import Any, Callable, List, TypeVar, cast, TypedDict
 
@@ -14,6 +17,16 @@ class ErrorDetails(TypedDict):
     message: str
     exception_details: str
     func_name: str
+
+
+class AuthErrorDetails(TypedDict):
+    error: str
+    error_description: str
+    error_codes: List[int]
+    timestamp: str
+    trace_id: str
+    correlation_id: str
+    error_uri: str
 
 
 class SPException(Exception):
@@ -43,6 +56,24 @@ class FileAlreadyExistsError(SPException):
             func_name,
             "File already exists. Choose 'overwrite=True' to overwrite.",
         )
+
+
+class InvalidClientIDError(Exception):
+    def __init__(self, error_details: AuthErrorDetails, func_name: str) -> None:
+        self.error_details = error_details
+        self.func_name = func_name
+        self.error_message = f"Unknown client ID. {self.error_details}"
+        logging.error(self.error_message)
+        super().__init__(self.error_message)
+
+
+class InvalidClientSecretError(Exception):
+    def __init__(self, error_details: AuthErrorDetails, func_name: str) -> None:
+        self.error_details = error_details
+        self.func_name = func_name
+        self.error_message = f"Unknown client secret. {self.error_details}"
+        logging.error(self.error_message)
+        super().__init__(self.error_message)
 
 
 class WrongDownloadOptionError(Exception):
@@ -86,7 +117,7 @@ class ListTemplateNotFoundError(Exception):
         super().__init__(self.error_message)
 
 
-def map_exception_to_custom_error(
+def handle_client_request_error(
     exc: ClientRequestException, func_name: str
 ) -> Exception:
     args = exc.args
@@ -109,18 +140,31 @@ def map_exception_to_custom_error(
         return exc
 
 
+def handle_value_error(exc: ValueError, func_name: str) -> Exception:
+    try:
+        error_details = json.loads(exc.args[0])
+        if error_details["error"] == "unauthorized_client":
+            return InvalidClientIDError(AuthErrorDetails(**error_details), func_name)
+        elif error_details["error"] == "invalid_client":
+            return InvalidClientSecretError(
+                AuthErrorDetails(**error_details), func_name
+            )
+        else:
+            return exc
+    except json.decoder.JSONDecodeError:
+        return exc
+
+
 def handle_sharepoint_error(func: T) -> T:
     @wraps(func)
     def wrapper(*args, **kwargs) -> Any:
         try:
             return func(*args, **kwargs)
         except ClientRequestException as exc:
-            try:
-                raise map_exception_to_custom_error(exc, func.__name__)
-            except (FolderNotFoundError, FileAlreadyExistsError):
-                logging.shutdown()
-            except (Exception, BaseException) as error:
-                logging.error(f"Unhandled exception: {error}")
-                raise error
+            raise handle_client_request_error(exc, func.__name__)
+        except ValueError as exc:
+            raise handle_value_error(exc, func.__name__)
+        except Exception as exc:
+            raise exc
 
     return cast(T, wrapper)
