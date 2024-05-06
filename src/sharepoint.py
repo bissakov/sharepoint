@@ -46,6 +46,7 @@ class SharePoint:
         self.client_secret = client_secret
 
         self._ctx: Optional[ClientContext] = None
+        self.is_connected = False
 
     @property
     def ctx(self) -> ClientContext:
@@ -65,6 +66,7 @@ class SharePoint:
 
         self._ctx.load(self._ctx.web)
         self._ctx.execute_query()
+        self.is_connected = True
         logging.info(
             "Connected to SharePoint site: '%s'", self._ctx.web.properties["Title"]
         )
