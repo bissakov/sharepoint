@@ -1,31 +1,26 @@
 import logging
-import pathlib
 import os
-from typing import List, Optional, Union, Any, Dict
+import pathlib
 import shutil
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
 from office365.runtime.auth.authentication_context import AuthenticationContext
-from office365.sharepoint.lists.creation_information import ListCreationInformation
-from office365.sharepoint.lists.template_type import (
-    ListTemplateType as _ListTemplateType,
-)
 from office365.runtime.auth.client_credential import ClientCredential
 from office365.sharepoint.client_context import ClientContext
-from office365.sharepoint.files.file import File
-from office365.sharepoint.folders.folder import Folder
-from office365.sharepoint.folders.collection import FolderCollection
 from office365.sharepoint.files.collection import FileCollection
-from datetime import datetime
+from office365.sharepoint.files.file import File
+from office365.sharepoint.folders.collection import FolderCollection
+from office365.sharepoint.folders.folder import Folder
+from office365.sharepoint.lists.creation_information import \
+    ListCreationInformation
 from office365.sharepoint.lists.list import List as SPList
+from office365.sharepoint.lists.template_type import \
+    ListTemplateType as _ListTemplateType
 
-from src.error import (
-    UnspecifiedError,
-    ListTemplateNotFoundError,
-    FormatNotSupportedError,
-    handle_sharepoint_error,
-)
-from src.tree import Tree, FileNode, FolderNode, FolderNodeDict
-
+from src.error import (FormatNotSupportedError, ListTemplateNotFoundError,
+                       UnspecifiedError, handle_sharepoint_error)
+from src.tree import FileNode, FolderNode, FolderNodeDict, Tree
 
 logger = logging.getLogger(__name__)
 
