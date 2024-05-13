@@ -7,6 +7,7 @@ import dotenv
 import pytz
 from rich.logging import RichHandler
 
+
 dotenv.load_dotenv()
 
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,6 +21,8 @@ os.makedirs(parent_reports_dir, exist_ok=True)
 
 def setup_logger(project_root: str) -> str:
     today = datetime.now(pytz.timezone("Asia/Almaty"))
+
+    rich_logger = RichHandler(level="INFO", rich_tracebacks=True)
 
     log_folder = os.path.join(project_root, "logs")
     os.makedirs(log_folder, exist_ok=True)
@@ -49,7 +52,7 @@ def setup_logger(project_root: str) -> str:
     google_logger.setLevel(logging.INFO)
 
     logger.addHandler(file_handler)
-    logger.addHandler(RichHandler(level="INFO", rich_tracebacks=True))
+    logger.addHandler(rich_logger)
 
     return logger_file
 
