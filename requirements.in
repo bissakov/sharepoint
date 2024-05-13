@@ -1,0 +1,5 @@
+Office365_REST_Python_Client==2.5.8
+pytest==8.2.0
+python-dotenv==1.0.1
+pytz==2024.1
+rich==13.7.1
